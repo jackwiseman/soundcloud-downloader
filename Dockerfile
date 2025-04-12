@@ -53,14 +53,19 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Validate SCDL
 RUN scdl --version
 
-# Create a crontab file
-RUN echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug >> /downloads/$USERNAME.log 2>&1" > /crontab.txt \
- && crontab /crontab.txt \
- && rm /crontab.txt
+# Create a crontab file that logs to stdout through a named pipe
+RUN mkdir -p /var/log/cron && \
+    echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug 2>&1 | tee /proc/1/fd/1" > /crontab.txt && \
+    crontab /crontab.txt && \
+    rm /crontab.txt
 
-# Create an entrypoint script that will properly expand environment variables
+# Create an entrypoint script that will send logs to stdout
 RUN echo '#!/bin/sh\n\
-scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug >> /downloads/$USERNAME.log 2>&1\n\
+echo "Starting initial download for $USERNAME..."\n\
+scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug 2>&1\n\
+\n\
+echo "Starting cron service..."\n\
 cron -f' > /entrypoint.sh && chmod +x /entrypoint.sh
+
 # Use the entrypoint script
 ENTRYPOINT ["/entrypoint.sh"]
