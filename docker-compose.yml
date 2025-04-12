@@ -3,15 +3,8 @@ services:
     build: .
     container_name: soundcloud-downloader
     restart: unless-stopped
-    tty: true
-    stdin_open: true
-    network_mode: host
-    privileged: true
     volumes:
-      - /media/pi/Untitled/lws-docker-data/soundcloud-downloader/jake_lindsey:/Music/SoundCloud/jake_lindsey
-      - /media/pi/Untitled/lws-docker-data/soundcloud-downloader/hansworld:/Music/SoundCloud/hansworld
-      - /media/pi/Untitled/lws-docker-data/soundcloud-downloader/anthony-lugay-1:/Music/SoundCloud/anthony-lugay-1
-      - /media/pi/Untitled/lws-docker-data/soundcloud-downloader/user-967098205:/Music/SoundCloud/user-967098205
+      - ./downloads:/downloads
     logging:
       options:
         max-size: "10m"

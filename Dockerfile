@@ -24,11 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create system link to python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
+ENV USERNAME=realwiseman
+
 # Set up the download directories
-RUN mkdir -p /Music/SoundCloud/jake_lindsey
-RUN mkdir -p /Music/SoundCloud/hansworld
-RUN mkdir -p /Music/SoundCloud/anthony-lugay-1
-RUN mkdir -p /Music/SoundCloud/user-967098205
+RUN mkdir -p /downloads
 
 # Set up the cron environment
 RUN mkdir /etc/crontabs
@@ -55,16 +54,13 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN scdl --version
 
 # Create a crontab file
-RUN echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/jake_lindsey --path /Music/SoundCloud/jake_lindsey --debug >> /Music/SoundCloud/jake_lindsey.log 2>&1" > /crontab.txt \
- && echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/hansworld --path /Music/SoundCloud/hansworld --debug >> /Music/SoundCloud/hansworld.log 2>&1" >> /crontab.txt \
- && echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/anthony-lugay-1 --path /Music/SoundCloud/anthony-lugay-1 --debug >> /Music/SoundCloud/anthony-lugay-1.log 2>&1" >> /crontab.txt \
- && echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/user-967098205 --path /Music/SoundCloud/user-967098205 --debug >> /Music/SoundCloud/user-967098205.log 2>&1" >> /crontab.txt \
+RUN echo "0 0 * * * scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug >> /downloads/$USERNAME.log 2>&1" > /crontab.txt \
  && crontab /crontab.txt \
  && rm /crontab.txt
 
-# Run the cron job on container startup and then start cron daemon
-CMD ["sh", "-c", "scdl -f -c --onlymp3 -l https://soundcloud.com/jake_lindsey --path /Music/SoundCloud/jake_lindsey --debug >> /Music/SoundCloud/jake_lindsey.log 2>&1 \
-    && scdl -f -c --onlymp3 -l https://soundcloud.com/hansworld --path /Music/SoundCloud/hansworld --debug >> /Music/SoundCloud/hansworld.log 2>&1 \
-    && scdl -f -c --onlymp3 -l https://soundcloud.com/anthony-lugay-1 --path /Music/SoundCloud/anthony-lugay-1 --debug >> /Music/SoundCloud/anthony-lugay-1.log 2>&1 \
-    && scdl -f -c --onlymp3 -l https://soundcloud.com/user-967098205 --path /Music/SoundCloud/user-967098205 --debug >> /Music/SoundCloud/user-967098205.log 2>&1 \
-    && cron -f"]
+# Create an entrypoint script that will properly expand environment variables
+RUN echo '#!/bin/sh\n\
+scdl -f -c --onlymp3 -l https://soundcloud.com/$USERNAME --path /downloads --debug >> /downloads/$USERNAME.log 2>&1\n\
+cron -f' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Use the entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
